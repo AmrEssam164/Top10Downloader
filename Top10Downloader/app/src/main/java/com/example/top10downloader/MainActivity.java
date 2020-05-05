@@ -1,39 +1,40 @@
 package com.example.top10downloader;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.preference.PreferenceFragment;
 import android.util.Log;
-import android.util.MalformedJsonException;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.List;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private ListView listapps;
+    FeedAdapter feedAdapter;
     private ProgressBar loadingIndicator;
+    private ArrayList<FeedEntry> applications;
     private String feedUrl = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topfreeapplications/limit=%d/xml";
     private int feedLimit = 10;
     private boolean checked = true;
     private String feedCacheUrl = "INVALIDATED";
     public static final String STATE_URL = "feedUrl";
     public static final String STATE_LIMIT = "feedLimit";
+    public static final String DOWNLOADED_ITEM = "downloaded_item";
+    public static final String APPLICATIONS_LIST = "applications";
+    private String downloaded_item = "Free Applications";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,10 +42,16 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         listapps = (ListView) findViewById(R.id.xmlListView);
         loadingIndicator = (ProgressBar) findViewById(R.id.loading_indicator);
+        feedAdapter = new FeedAdapter(MainActivity.this, R.layout.list_record, new ArrayList<FeedEntry>());
+        listapps.setAdapter(feedAdapter);
         if (savedInstanceState != null) {
             feedUrl = savedInstanceState.getString(STATE_URL);
             feedLimit = savedInstanceState.getInt(STATE_LIMIT);
+            downloaded_item = savedInstanceState.getString(DOWNLOADED_ITEM);
+            applications = (ArrayList<FeedEntry>) savedInstanceState.getSerializable(APPLICATIONS_LIST);
+            feedAdapter.loadNewData(applications);
         }
+        getSupportActionBar().setTitle("Top "+feedLimit+" "+downloaded_item);
         downloadUrl(String.format(feedUrl, feedLimit));
     }
 
@@ -68,14 +75,18 @@ public class MainActivity extends AppCompatActivity {
             case R.id.mnuFree:
                 feedUrl = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topfreeapplications/limit=%d/xml";
                 checked = true;
+                downloaded_item = "Free Applications";
+                getSupportActionBar().setTitle("Free Applications");
                 break;
             case R.id.mnuPaid:
                 feedUrl = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/toppaidapplications/limit=%d/xml";
                 checked = true;
+                downloaded_item = "Paid Applications";
                 break;
             case R.id.mnuSongs:
                 feedUrl = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topsongs/limit=%d/xml";
                 checked = true;
+                downloaded_item = "Songs";
                 break;
             case R.id.mnu10:
             case R.id.mnu25:
@@ -97,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
                 return super.onOptionsItemSelected(item);
         }
         if (checked) {
+            getSupportActionBar().setTitle("Top "+feedLimit+" "+downloaded_item);
             downloadUrl(String.format(feedUrl, feedLimit));
         }
         return true;
@@ -107,6 +119,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle outState) {
         outState.putString(STATE_URL, feedUrl);
         outState.putInt(STATE_LIMIT, feedLimit);
+        outState.putString(DOWNLOADED_ITEM,downloaded_item);
+        outState.putSerializable(APPLICATIONS_LIST,applications);
         super.onSaveInstanceState(outState);
     }
 
@@ -136,14 +150,11 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
             loadingIndicator.setVisibility(View.INVISIBLE);
-            //Log.d(TAG, "onPostExecute: parameter is"+s);
             ParseApplications parseApplications = new ParseApplications();
             parseApplications.parse(s);
             Log.d(TAG, "onPostExecute: starts");
-//            ArrayAdapter<FeedEntry> arrayAdapter = new ArrayAdapter<FeedEntry>(MainActivity.this,R.layout.list_item,parseApplications.getApplications());
-//            listapps.setAdapter(arrayAdapter);
-            FeedAdapter feedAdapter = new FeedAdapter(MainActivity.this, R.layout.list_record, parseApplications.getApplications());
-            listapps.setAdapter(feedAdapter);
+            applications = parseApplications.getApplications();
+            feedAdapter.loadNewData(applications);
             Log.d(TAG, "onPostExecute: ends");
         }
 

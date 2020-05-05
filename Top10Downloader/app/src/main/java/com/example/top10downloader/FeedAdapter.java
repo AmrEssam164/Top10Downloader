@@ -8,15 +8,16 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class FeedAdapter extends ArrayAdapter {
     private static final String TAG = "FeedAdapter";
     private final int layoutResource;
     private final LayoutInflater layoutInflater;
-    private List<FeedEntry> applications;
+    private ArrayList<FeedEntry> applications;
 
-    public FeedAdapter(Context context, int resource, List<FeedEntry> applications) {
+    public FeedAdapter(Context context, int resource, ArrayList<FeedEntry> applications) {
         super(context, resource);
         this.layoutResource = resource;
         this.layoutInflater = LayoutInflater.from(context);
@@ -48,6 +49,11 @@ public class FeedAdapter extends ArrayAdapter {
         viewHolder.tvSummary.setText(currentApp.getSummary());
 
         return convertView;
+    }
+
+    public void loadNewData(ArrayList<FeedEntry> newApplications){
+        applications = newApplications;
+        notifyDataSetChanged();
     }
 
     private class ViewHolder {

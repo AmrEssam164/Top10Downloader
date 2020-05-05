@@ -1,6 +1,8 @@
 package com.example.top10downloader;
 
-public class FeedEntry {
+import java.io.Serializable;
+
+public class FeedEntry implements Serializable {
     private String name;
     private String artist;
     private String releaseDate;
